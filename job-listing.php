@@ -1,7 +1,9 @@
 <?php
 /**
  * Plugin Name: Job Listing
+ * Description: A simple plugin to add and manage job listings on your WordPress site.
  * Version: 1.0
+ * Author: Your Name
  */
 
 // Prevent direct access
@@ -112,4 +114,65 @@ function job_listing_admin_page() {
     }
 
     echo '</div>';
+}
+
+// Shortcode for frontend
+add_shortcode('job_listings', 'display_job_listings');
+
+function display_job_listings() {
+    global $wpdb;
+    $jobs = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}job_listings ORDER BY id DESC");
+
+    $output = '<div class="job-listings">';
+    $output .= '<h2>Available Jobs</h2>';
+
+    if ($jobs) {
+        foreach ($jobs as $job) {
+            $output .= '<div class="job-item">';
+            $output .= '<h3>' . esc_html($job->title) . '</h3>';
+            $output .= '<p><strong>Company:</strong> ' . esc_html($job->company) . '</p>';
+            $output .= '<p><strong>Location:</strong> ' . esc_html($job->location) . '</p>';
+            $output .= '<p><strong>Salary:</strong> ' . esc_html($job->salary) . '</p>';
+            $output .= '<button class="apply-btn" onclick="showForm(' . $job->id . ')">Apply</button>';
+            $output .= '</div>';
+        }
+    } else {
+        $output .= '<p>No jobs available.</p>';
+    }
+
+    $output .= '</div>';
+
+    // Application form
+    $output .= '<div id="applicationForm" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; border:2px solid #333; z-index:1000;">';
+    $output .= '<h3>Apply for Job</h3>';
+    $output .= '<form method="post">';
+    $output .= '<input type="hidden" id="job_id" name="job_id" value="">';
+    $output .= '<p><label>Name: <input type="text" name="applicant_name" required></label></p>';
+    $output .= '<p><label>Email: <input type="email" name="applicant_email" required></label></p>';
+    $output .= '<p><label>Phone: <input type="tel" name="applicant_message" required></label></p>';
+    $output .= '<p><button type="submit">Submit</button> <button type="button" onclick="hideForm()">Cancel</button></p>';
+    $output .= '</form>';
+    $output .= '</div>';
+
+    return $output;
+}
+
+// Add CSS and JavaScript
+add_action('wp_head', 'job_listing_styles');
+add_action('wp_footer', 'job_listing_scripts');
+
+function job_listing_styles() {
+    echo '<link rel="stylesheet" href="' . plugin_dir_url(__FILE__) . 'job-listing.css">';
+}
+
+function job_listing_scripts() {
+    echo '<script>
+    function showForm(jobId) {
+        document.getElementById("job_id").value = jobId;
+        document.getElementById("applicationForm").style.display = "block";
+    }
+    function hideForm() {
+        document.getElementById("applicationForm").style.display = "none";
+    }
+    </script>';
 }
