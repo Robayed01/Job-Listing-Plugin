@@ -1,4 +1,8 @@
 <?php
+/**
+ * Plugin Name: Job Listing
+ * Version: 1.0
+ */
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -39,4 +43,73 @@ function job_listing_activate() {
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
     dbDelta($sql2);
+}
+
+// Add admin menu
+add_action('admin_menu', 'job_listing_admin_menu');
+
+function job_listing_admin_menu() {
+    add_menu_page('Job Listing', 'Job Listing', 'manage_options', 'job-listing', 'job_listing_admin_page', 'dashicons-businessman', 30);
+}
+
+// Admin page for managing jobs
+function job_listing_admin_page() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'job_listings';
+
+    // Add new job
+    if (isset($_POST['submit_job'])) {
+        $wpdb->insert($table_name, array(
+            'title' => sanitize_text_field($_POST['title']),
+            'company' => sanitize_text_field($_POST['company']),
+            'location' => sanitize_text_field($_POST['location']),
+            'salary' => sanitize_text_field($_POST['salary'])
+        ));
+        echo '<div class="notice notice-success"><p>Job added!</p></div>';
+    }
+
+    // Delete job
+    if (isset($_POST['delete_job'])) {
+        $wpdb->delete($table_name, array('id' => intval($_POST['job_id'])));
+        echo '<div class="notice notice-success"><p>Job deleted!</p></div>';
+    }
+
+    // Get all jobs
+    $jobs = $wpdb->get_results("SELECT * FROM $table_name ORDER BY id DESC");
+
+    echo '<div class="wrap">';
+    echo '<h1>Job Listing</h1>';
+
+    // Add job form
+    echo '<h2>Add New Job</h2>';
+    echo '<form method="post">';
+    echo '<p><label>Job Title: <input type="text" name="title" required></label></p>';
+    echo '<p><label>Company: <input type="text" name="company" required></label></p>';
+    echo '<p><label>Location: <input type="text" name="location" required></label></p>';
+    echo '<p><label>Salary: <input type="text" name="salary" required></label></p>';
+    echo '<p><input type="submit" name="submit_job" value="Add Job" class="button button-primary"></p>';
+    echo '</form>';
+
+    echo '<hr>';
+
+    // Show jobs
+    echo '<h2>Current Jobs</h2>';
+    if ($jobs) {
+        foreach ($jobs as $job) {
+            echo '<div style="border:1px solid #ddd; padding:15px; margin:10px 0;">';
+            echo '<h3>' . esc_html($job->title) . '</h3>';
+            echo '<p><strong>Company:</strong> ' . esc_html($job->company) . '</p>';
+            echo '<p><strong>Location:</strong> ' . esc_html($job->location) . '</p>';
+            echo '<p><strong>Salary:</strong> ' . esc_html($job->salary) . '</p>';
+            echo '<form method="post" style="display:inline;">';
+            echo '<input type="hidden" name="job_id" value="' . $job->id . '">';
+            echo '<input type="submit" name="delete_job" value="Delete" class="button button-small" onclick="return confirm(\'Delete this job?\')">';
+            echo '</form>';
+            echo '</div>';
+        }
+    } else {
+        echo '<p>No jobs found.</p>';
+    }
+
+    echo '</div>';
 }
