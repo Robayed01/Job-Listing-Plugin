@@ -1,17 +1,13 @@
 <?php
 /**
  * Plugin Name: Job Listing
- * Description: A simple plugin to add and manage job listings on your WordPress site.
  * Version: 1.0
- * Author: Your Name
  */
 
-// Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
 
-// Create database tables when plugin is activated
 register_activation_hook(__FILE__, 'job_listing_activate');
 
 function job_listing_activate() {
@@ -19,7 +15,6 @@ function job_listing_activate() {
 
     $charset_collate = $wpdb->get_charset_collate();
 
-    // Job listings table
     $table_name = $wpdb->prefix . 'job_listings';
     $sql = "CREATE TABLE $table_name (
         id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -30,7 +25,6 @@ function job_listing_activate() {
         PRIMARY KEY (id)
     ) $charset_collate;";
 
-    // Job applications table
     $table_name2 = $wpdb->prefix . 'job_applications';
     $sql2 = "CREATE TABLE $table_name2 (
         id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -47,19 +41,16 @@ function job_listing_activate() {
     dbDelta($sql2);
 }
 
-// Add admin menu
 add_action('admin_menu', 'job_listing_admin_menu');
 
 function job_listing_admin_menu() {
     add_menu_page('Job Listing', 'Job Listing', 'manage_options', 'job-listing', 'job_listing_admin_page', 'dashicons-businessman', 30);
 }
 
-// Admin page for managing jobs
 function job_listing_admin_page() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'job_listings';
 
-    // Add new job
     if (isset($_POST['submit_job'])) {
         $wpdb->insert($table_name, array(
             'title' => sanitize_text_field($_POST['title']),
@@ -70,19 +61,16 @@ function job_listing_admin_page() {
         echo '<div class="notice notice-success"><p>Job added!</p></div>';
     }
 
-    // Delete job
     if (isset($_POST['delete_job'])) {
         $wpdb->delete($table_name, array('id' => intval($_POST['job_id'])));
         echo '<div class="notice notice-success"><p>Job deleted!</p></div>';
     }
 
-    // Get all jobs
     $jobs = $wpdb->get_results("SELECT * FROM $table_name ORDER BY id DESC");
 
     echo '<div class="wrap">';
     echo '<h1>Job Listing</h1>';
 
-    // Add job form
     echo '<h2>Add New Job</h2>';
     echo '<form method="post">';
     echo '<p><label>Job Title: <input type="text" name="title" required></label></p>';
@@ -94,7 +82,6 @@ function job_listing_admin_page() {
 
     echo '<hr>';
 
-    // Show jobs
     echo '<h2>Current Jobs</h2>';
     if ($jobs) {
         foreach ($jobs as $job) {
@@ -116,7 +103,6 @@ function job_listing_admin_page() {
     echo '</div>';
 }
 
-// Shortcode for frontend
 add_shortcode('job_listings', 'display_job_listings');
 
 function display_job_listings() {
@@ -142,7 +128,6 @@ function display_job_listings() {
 
     $output .= '</div>';
 
-    // Application form
     $output .= '<div id="applicationForm" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; border:2px solid #333; z-index:1000;">';
     $output .= '<h3>Apply for Job</h3>';
     $output .= '<form method="post">';
@@ -157,7 +142,17 @@ function display_job_listings() {
     return $output;
 }
 
-// Add CSS and JavaScript
+if (isset($_POST['applicant_name']) && isset($_POST['applicant_email']) && isset($_POST['applicant_message']) && isset($_POST['job_id'])) {
+    global $wpdb;
+    $wpdb->insert($wpdb->prefix . 'job_applications', array(
+        'job_id' => intval($_POST['job_id']),
+        'applicant_name' => sanitize_text_field($_POST['applicant_name']),
+        'applicant_email' => sanitize_email($_POST['applicant_email']),
+        'applicant_message' => sanitize_text_field($_POST['applicant_message'])
+    ));
+    echo '<script>alert("Application submitted!");</script>';
+}
+
 add_action('wp_head', 'job_listing_styles');
 add_action('wp_footer', 'job_listing_scripts');
 
