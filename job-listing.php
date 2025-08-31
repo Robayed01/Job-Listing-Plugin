@@ -1,8 +1,4 @@
 <?php
-/**
- * Plugin Name: Job Listing
- * Version: 1.0
- */
 
 if (!defined('ABSPATH')) {
     exit;
@@ -12,9 +8,9 @@ register_activation_hook(__FILE__, 'job_listing_activate');
 
 function job_listing_activate() {
     global $wpdb;   
-
+    
     $charset_collate = $wpdb->get_charset_collate();
-
+    
     $table_name = $wpdb->prefix . 'job_listings';
     $sql = "CREATE TABLE $table_name (
         id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -24,7 +20,7 @@ function job_listing_activate() {
         salary varchar(100) NOT NULL,
         PRIMARY KEY (id)
     ) $charset_collate;";
-
+    
     $table_name2 = $wpdb->prefix . 'job_applications';
     $sql2 = "CREATE TABLE $table_name2 (
         id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -35,7 +31,7 @@ function job_listing_activate() {
         date date DEFAULT CURRENT_DATE,
         PRIMARY KEY (id)
     ) $charset_collate;";
-
+    
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
     dbDelta($sql2);
@@ -45,12 +41,13 @@ add_action('admin_menu', 'job_listing_admin_menu');
 
 function job_listing_admin_menu() {
     add_menu_page('Job Listing', 'Job Listing', 'manage_options', 'job-listing', 'job_listing_admin_page', 'dashicons-businessman', 30);
+    add_submenu_page('job-listing', 'View Applications', 'View Applications', 'manage_options', 'view-applications', 'view_applications_page');
 }
 
 function job_listing_admin_page() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'job_listings';
-
+    
     if (isset($_POST['submit_job'])) {
         $wpdb->insert($table_name, array(
             'title' => sanitize_text_field($_POST['title']),
@@ -60,17 +57,17 @@ function job_listing_admin_page() {
         ));
         echo '<div class="notice notice-success"><p>Job added!</p></div>';
     }
-
+    
     if (isset($_POST['delete_job'])) {
         $wpdb->delete($table_name, array('id' => intval($_POST['job_id'])));
         echo '<div class="notice notice-success"><p>Job deleted!</p></div>';
     }
-
+    
     $jobs = $wpdb->get_results("SELECT * FROM $table_name ORDER BY id DESC");
-
+    
     echo '<div class="wrap">';
     echo '<h1>Job Listing</h1>';
-
+    
     echo '<h2>Add New Job</h2>';
     echo '<form method="post">';
     echo '<p><label>Job Title: <input type="text" name="title" required></label></p>';
@@ -79,9 +76,9 @@ function job_listing_admin_page() {
     echo '<p><label>Salary: <input type="text" name="salary" required></label></p>';
     echo '<p><input type="submit" name="submit_job" value="Add Job" class="button button-primary"></p>';
     echo '</form>';
-
+    
     echo '<hr>';
-
+    
     echo '<h2>Current Jobs</h2>';
     if ($jobs) {
         foreach ($jobs as $job) {
@@ -99,7 +96,44 @@ function job_listing_admin_page() {
     } else {
         echo '<p>No jobs found.</p>';
     }
+    
+    echo '</div>';
+}
 
+function view_applications_page() {
+    global $wpdb;
+    $applications = $wpdb->get_results("
+        SELECT a.*, j.title as job_title, j.company 
+        FROM {$wpdb->prefix}job_applications a 
+        LEFT JOIN {$wpdb->prefix}job_listings j ON a.job_id = j.id 
+        ORDER BY a.date DESC
+    ");
+    
+    echo '<div class="wrap">';
+    echo '<h1>Job Applications</h1>';
+    
+    if ($applications) {
+        echo '<table class="wp-list-table widefat fixed striped">';
+        echo '<thead><tr>';
+        echo '<th>Name</th><th>Job</th><th>Company</th><th>Email</th><th>Phone</th><th>Date</th>';
+        echo '</tr></thead><tbody>';
+        
+        foreach ($applications as $app) {
+            echo '<tr>';
+            echo '<td>' . esc_html($app->applicant_name) . '</td>';
+            echo '<td>' . esc_html($app->job_title) . '</td>';
+            echo '<td>' . esc_html($app->company) . '</td>';
+            echo '<td>' . esc_html($app->applicant_email) . '</td>';
+            echo '<td>' . esc_html($app->applicant_message) . '</td>';
+            echo '<td>' . esc_html($app->date) . '</td>';
+            echo '</tr>';
+        }
+        
+        echo '</tbody></table>';
+    } else {
+        echo '<p>No applications found.</p>';
+    }
+    
     echo '</div>';
 }
 
@@ -108,10 +142,10 @@ add_shortcode('job_listings', 'display_job_listings');
 function display_job_listings() {
     global $wpdb;
     $jobs = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}job_listings ORDER BY id DESC");
-
+    
     $output = '<div class="job-listings">';
     $output .= '<h2>Available Jobs</h2>';
-
+    
     if ($jobs) {
         foreach ($jobs as $job) {
             $output .= '<div class="job-item">';
@@ -125,9 +159,9 @@ function display_job_listings() {
     } else {
         $output .= '<p>No jobs available.</p>';
     }
-
+    
     $output .= '</div>';
-
+    
     $output .= '<div id="applicationForm" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; border:2px solid #333; z-index:1000;">';
     $output .= '<h3>Apply for Job</h3>';
     $output .= '<form method="post">';
@@ -138,7 +172,7 @@ function display_job_listings() {
     $output .= '<p><button type="submit">Submit</button> <button type="button" onclick="hideForm()">Cancel</button></p>';
     $output .= '</form>';
     $output .= '</div>';
-
+    
     return $output;
 }
 
@@ -171,3 +205,4 @@ function job_listing_scripts() {
     }
     </script>';
 }
+?>
