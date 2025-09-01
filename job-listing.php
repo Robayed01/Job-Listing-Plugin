@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * Plugin Name: Job Listing
+ * Version: 1.0 
+ * Author: Robayedur Rahman(231-134-033)
+ */
 if (!defined('ABSPATH')) {
     exit;
 }
